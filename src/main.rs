@@ -2,10 +2,10 @@ use clap::Parser;
 
 use rayon::prelude::*;
 
-use std::fs::{self, *};
-use std::path::*;
-use std::io::*;
 use std::collections::HashMap;
+use std::fs::{self, *};
+use std::io::*;
+use std::path::*;
 
 fn main() {
     let args = Args::parse();
@@ -14,15 +14,28 @@ fn main() {
     find_all_files(Path::new(&args.directory), &mut files);
 
     if args.threads > 1 {
-        rayon::ThreadPoolBuilder::new().num_threads(args.threads).build_global().unwrap();
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(args.threads)
+            .build_global()
+            .unwrap();
     }
 
     if args.by_ext {
         let res_map = count_lines_by_ext(&files, args.threads);
         res_map.iter().for_each(|(ext, res)| {
-            println!("There are {} lines of code in \"{}\" files.", res.lines_of_code, ext);
-            println!("There are {} empty lines in \"{}\" files.", res.empty_lines, ext);
-            println!("{:.2}% of the lines in \"{}\" files are empty.", res.percent_empty(), ext);
+            println!(
+                "There are {} lines of code in \"{}\" files.",
+                res.lines_of_code, ext
+            );
+            println!(
+                "There are {} empty lines in \"{}\" files.",
+                res.empty_lines, ext
+            );
+            println!(
+                "{:.2}% of the lines in \"{}\" files are empty.",
+                res.percent_empty(),
+                ext
+            );
         });
     } else {
         let res = count_lines(&files, args.threads);
@@ -62,15 +75,15 @@ fn count_lines(files: &[PathBuf], threads: usize) -> Results {
     };
 
     if threads > 1 {
-        files.par_iter().map(count_lines_in_file).reduce(
-            || Results::new(),
-            reduce_fn
-        )
+        files
+            .par_iter()
+            .map(count_lines_in_file)
+            .reduce(|| Results::new(), reduce_fn)
     } else {
-        files.iter().map(count_lines_in_file).fold(
-            Results::new(),
-            reduce_fn
-        )
+        files
+            .iter()
+            .map(count_lines_in_file)
+            .fold(Results::new(), reduce_fn)
     }
 }
 
@@ -87,20 +100,24 @@ fn count_lines_by_ext(files: &[PathBuf], threads: usize) -> HashMap<String, Resu
     };
 
     if threads > 1 {
-        files.par_iter().map(|p| (get_ext(p), count_lines_in_file(p))).fold(
-            || HashMap::new(),
-            reduce_fn
-        ).reduce(|| { HashMap::new() }, |mut a, b| {
-            for e in b.into_iter() {
-                a = reduce_fn(a, e);
-            }
-            a
-        })
+        files
+            .par_iter()
+            .map(|p| (get_ext(p), count_lines_in_file(p)))
+            .fold(|| HashMap::new(), reduce_fn)
+            .reduce(
+                || HashMap::new(),
+                |mut a, b| {
+                    for e in b.into_iter() {
+                        a = reduce_fn(a, e);
+                    }
+                    a
+                },
+            )
     } else {
-        files.iter().map(|p| (get_ext(p), count_lines_in_file(p))).fold(
-            HashMap::new(),
-            reduce_fn
-        )
+        files
+            .iter()
+            .map(|p| (get_ext(p), count_lines_in_file(p)))
+            .fold(HashMap::new(), reduce_fn)
     }
 }
 
@@ -147,11 +164,14 @@ struct Results {
 impl Results {
     /// Create a new zero-initialized Results instance.
     fn new() -> Self {
-        Results { lines_of_code: 0, empty_lines: 0 }
+        Results {
+            lines_of_code: 0,
+            empty_lines: 0,
+        }
     }
 
     /// Compute the percentage of empty lines.
     fn percent_empty(&self) -> f64 {
-        (self.empty_lines as f64) / ((self.lines_of_code + self.empty_lines) as f64)
+        (self.empty_lines as f64) / ((self.lines_of_code + self.empty_lines) as f64) * 100.0f64
     }
 }

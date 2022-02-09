@@ -16,7 +16,7 @@ in this repository prints the following:
 ```
 There are 136 lines of code.
 There are 21 empty lines.
-0.13% of the lines are empty.
+13.38% of the lines are empty.
 ```
 
 Running
@@ -27,5 +27,5 @@ in this repository prints:
 ```
 There are 136 lines of code in "rs" files.
 There are 21 empty lines in "rs" files.
-0.13% of the lines in "rs" files are empty.
+13.38% of the lines in "rs" files are empty.
 ```
