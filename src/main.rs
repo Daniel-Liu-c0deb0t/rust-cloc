@@ -8,11 +8,14 @@ use std::io::*;
 use std::path::*;
 
 fn main() {
+    // use clap's convenient derive feature to parse arguments based on a struct we define
     let args = Args::parse();
 
+    // recursively traverse the specified directory to get a list of all the files
     let mut files = Vec::new();
     find_all_files(Path::new(&args.directory), &mut files);
 
+    // set the number of threads to use in rayon
     if args.threads > 1 {
         rayon::ThreadPoolBuilder::new()
             .num_threads(args.threads)
@@ -21,6 +24,7 @@ fn main() {
     }
 
     if args.by_ext {
+        // count lines for each file type and print results
         let res_map = count_lines_by_ext(&files, args.threads);
         res_map.iter().for_each(|(ext, res)| {
             println!(
@@ -38,6 +42,7 @@ fn main() {
             );
         });
     } else {
+        // count and aggregate lines across all file types and print results
         let res = count_lines(&files, args.threads);
         println!("There are {} lines of code.", res.lines_of_code);
         println!("There are {} empty lines.", res.empty_lines);
@@ -51,11 +56,13 @@ fn count_lines_in_file(path: &PathBuf) -> Results {
     let mut res = Results::new();
 
     for line in r.lines() {
+        // if there is an error in reading, just skip the file
         let line = match line {
             Ok(l) => l,
             _ => return Results::new(),
         };
 
+        // a line is considered empty if it is actually empty or if it only contains whitespace
         if line.trim().is_empty() {
             res.empty_lines += 1;
         } else {
@@ -69,11 +76,14 @@ fn count_lines_in_file(path: &PathBuf) -> Results {
 /// Count lines for multiple files specified by their paths, and aggregate
 /// the line counts across all files.
 fn count_lines(files: &[PathBuf], threads: usize) -> Results {
+    // this function is used to aggregate the results of counting the lines of code
     let reduce_fn = |a: Results, b: Results| Results {
         lines_of_code: a.lines_of_code + b.lines_of_code,
         empty_lines: a.empty_lines + b.empty_lines,
     };
 
+    // map-reduce paradigm: count lines for each file separately, then combine the counted
+    // empty and non-empty lines together using a reduction operation
     if threads > 1 {
         files
             .par_iter()
@@ -89,6 +99,9 @@ fn count_lines(files: &[PathBuf], threads: usize) -> Results {
 
 /// Count lines and aggregate the counts for each file type.
 fn count_lines_by_ext(files: &[PathBuf], threads: usize) -> HashMap<String, Results> {
+    // This function is used to add a new entry of file type and line counts to a running HashMap.
+    // If the HashMap contains the file type, then the line counts are summed. Otherwise a new
+    // entry is inserted.
     let reduce_fn = |mut map: HashMap<String, Results>, (new_ext, new_res): (String, Results)| {
         map.entry(new_ext)
             .and_modify(|e| {
@@ -99,11 +112,14 @@ fn count_lines_by_ext(files: &[PathBuf], threads: usize) -> HashMap<String, Resu
         map
     };
 
+    // similar map-reduce paradigm to count_lines, but the reduction operation builds a HashMap
     if threads > 1 {
         files
             .par_iter()
             .map(|p| (get_ext(p), count_lines_in_file(p)))
+            // generates multiple HashMaps in parallel by using reduce_fn
             .fold(|| HashMap::new(), reduce_fn)
+            // combine all the HashMap to get a single HashMap
             .reduce(
                 || HashMap::new(),
                 |mut a, b| {

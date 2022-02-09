@@ -14,9 +14,9 @@ cargo run -- src
 ```
 in this repository prints the following:
 ```
-There are 136 lines of code.
+There are 172 lines of code.
 There are 21 empty lines.
-13.38% of the lines are empty.
+10.88% of the lines are empty.
 ```
 
 Running
@@ -25,7 +25,7 @@ cargo run -- -A src
 ```
 in this repository prints:
 ```
-There are 136 lines of code in "rs" files.
+There are 172 lines of code in "rs" files.
 There are 21 empty lines in "rs" files.
-13.38% of the lines in "rs" files are empty.
+10.88% of the lines in "rs" files are empty.
 ```
